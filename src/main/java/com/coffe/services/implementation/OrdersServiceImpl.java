@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class OrdersServiceImpl implements OrdersService {
             throws IngredientNotFoundException, NotEnoughIngredientsException, CustomerNotFoundException {
         Ingredients espresso = ingredientService.getIngredientByName("espresso");
         Customer customer = customerService.findCustomerByFirstNameAndLastName(customDefinition.getCustomerFN(), customDefinition.getCustomerLN());
-        if (espresso.getQuantity() < customDefinition.getNumberOfShots()*customDefinition.getNumberOfCoffees()) {
+        if (espresso.getQuantity() < customDefinition.getNumberOfShots() * customDefinition.getNumberOfCoffees()) {
             throw new NotEnoughIngredientsException("Not enough shots of espresso for the coffee!");
         }
         double profit = customDefinition.getDimension().getAdditionalPrice() * customDefinition.getNumberOfCoffees();
@@ -230,12 +231,12 @@ public class OrdersServiceImpl implements OrdersService {
         }
         int luhnSum = 0;
         for (int i = 0; i < cardNr.length(); i++) {
-            if (i % 2 == 0) {
-                luhnSum += Integer.parseInt(cardNr.charAt(i) + "");
+            int luhnSum1 = Integer.parseInt(cardNr.charAt(i) + "");
+            if (i % 2 != 0) {
+                luhnSum += luhnSum1;
             } else {
-                int value = Integer.parseInt(cardNr.charAt(i) + "") * 2;
-
-                if (value > 10) {
+                int value = luhnSum1 * 2;
+                if (value >= 10) {
                     value = value % 10 + value / 10;
                 }
                 luhnSum += value;
@@ -258,10 +259,9 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     private void validateDate(String date) throws IncorrectCardException {
-        String[] dates = date.split("/");
-        String convertedDate = dates[2] + "-" + dates[1] + "-" + dates[0];
-        String current = LocalDate.now().toString();
-        if (convertedDate.compareTo(current) > 0) {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate cardExpirationDate = LocalDate.parse(date, dateTimeFormatter);
+        if (cardExpirationDate.isBefore(LocalDate.now())) {
             throw new IncorrectCardException("Card expired!");
         }
     }
